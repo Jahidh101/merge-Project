@@ -114,8 +114,8 @@ class PatientController extends Controller
         $newList = Order_list::where('username', $req->username)->get();
         $patient = All_user::where('username', $req->username)->first();
         $data =array();
+        //return response()->json($newList);   
         foreach($newList as $new){
-            //return $new->carts;
             $medicines =array();
             foreach($new->carts as $ca){
                 $medicine = [
@@ -128,7 +128,7 @@ class PatientController extends Controller
                 ];
                 $medicines[] = $medicine;
             }
-            //return $carts;
+            return response()->json($medicines);
             
             $da = [
                 'order_id' => $new->order_id,

@@ -5,7 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use App\Models\All_user;
-use App\Models\Medicine;
+use App\Models\Medicine_storage;
 use App\Models\Order_list;
 
 class Cart extends Model
@@ -18,7 +18,7 @@ class Cart extends Model
     }
 
     public function medicines(){
-        return $this->belongsTo(Medicine::class);
+        return $this->belongsTo(Medicine_storage::class);
     }
 
     public function order_lists(){
