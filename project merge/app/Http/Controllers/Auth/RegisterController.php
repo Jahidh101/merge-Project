@@ -76,23 +76,24 @@ class RegisterController extends Controller
     */
 
     public function register(Request $req){
-        $req->validate(
-            [
-                'name'=>'required|regex:/^[A-Z a-z.]+$/',
-                'gender'=>'required',
-                'userTypes_id'=>'required',
-                'username'=>'required|min:5|max:10|unique:all_users,username',
-                'email'=>'required|email|unique:all_users,email',
-                'address'=>'required',
-                'password'=>'required|min:3|max:20',
-                'confirmPassword'=>'required|same:password'
-            ],
-            [
-                'username.required'=>'Please provide username',
-                'userTypes_id.required'=>'User Type field is required',
-                'confirmPassword.same'=>'Password and confirm password must be same'
-            ]
-        );
+        $validator = Validator::make($req->all(), [
+            'name'=>'required|regex:/^[A-Z a-z.]+$/',
+            'gender'=>'required',
+            'userTypes_id'=>'required',
+            'username'=>'required|min:5|max:10|unique:all_users,username',
+            'email'=>'required|email|unique:all_users,email',
+            'address'=>'required',
+            'password'=>'required|min:3|max:20',
+            'confirmPassword'=>'required|same:password'
+        ],
+        [
+            'name.required'=>'Please provide username',
+            'userTypes_id.required'=>'User Type field is required',
+            'confirmPassword.same'=>'Password and confirm password must be same'
+        ]);
+        if ($validator->fails())
+            return response()->json($validator->errors());
+        
         $user = new All_user();
         $user->username = $req->username;
         $user->password = md5($req->password);

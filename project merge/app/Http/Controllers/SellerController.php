@@ -3,8 +3,9 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Validator;
 use App\Models\Medicine_type;
-use App\Models\Medicine_storage;
+use App\Models\Medicine;
 use App\Models\Order_list;
 use App\Models\All_user;
 use App\Models\Delivary_man_info;
@@ -21,14 +22,12 @@ class SellerController extends Controller
     }
 
     public function addMedicineTypeSubmit(Request $req){
-        $req->validate(
-            [
-                'type'=>'required|regex:/^[a-z]+$/',
-            ],
-            [
-                'type.regex'=>'Type can only contain lower case alphabets ',
-            ]
-        );
+        $validator = Validator::make($req->all(), [
+            'type'=>'required|regex:/^[a-z]+$/',
+        ]);
+        if ($validator->fails())
+            return response()->json($validator->errors());
+        
         $existing = Medicine_type::where('type', $req->type)->first();
         if ($existing)
             return response()->json(["errorMsg" => "This type already exists"]);
@@ -55,14 +54,13 @@ class SellerController extends Controller
     }
 
     public function medicineTypeEditSubmit(Request $req){
-        $req->validate(
-            [
-                'type'=>'required|regex:/^[a-z]+$/',
-            ],
-            [
-                'type.regex'=>'Type can only contain lower case alphabets ',
-            ]
-        );
+        $validator = Validator::make($req->all(), [
+            'type'=>'required|regex:/^[a-z]+$/',
+            'id' => 'required',
+        ]);
+        if ($validator->fails())
+            return response()->json($validator->errors());
+        
         $existing = Medicine_type::where('type', $req->type)->first();
         if ($existing)
             return response()->json(["errorMsg" => "This type already exists"]);
@@ -81,23 +79,19 @@ class SellerController extends Controller
     }
 
     public function addMedicineSubmit(Request $req){
-        $req->validate(
-            [
-                'name'=>'required|regex:/^[A-Za-z]+$/',
-                'medicineType'=>'required',
-                'weight'=>'required|regex:/^[0-9]+$/',
-                'unit'=>'required',
-                'quantity'=>'required|regex:/^[0-9]+$/',
-            ],
-            [
-                'name.regex'=>'Type can only contain lower case alphabets. ',
-                'weight.regex'=>'Weight can only contain numbers. ',
-                'quantity.regex'=>'Quantity can only contain numbers.',
-            ]
-        );
+        $validator = Validator::make($req->all(), [
+            'name'=>'required|regex:/^[A-Za-z]+$/',
+            'medicineType'=>'required',
+            'weight'=>'required|regex:/^[0-9]+$/',
+            'unit'=>'required',
+            'quantity'=>'required|regex:/^[0-9]+$/',
+        ]);
+        if ($validator->fails())
+            return response()->json($validator->errors());
+        
         //return response()->json($req);
         $req->weight = $req->weight.' '.$req->unit;
-        $medCheck = Medicine_storage::where('name', $req->name)->where('type', $req->medicineType)->where('weight', $req->weight)->first();
+        $medCheck = Medicine::where('name', $req->name)->where('type', $req->medicineType)->where('weight', $req->weight)->first();
         if($medCheck){
             //return response()->json($req);
             $medCheck->exists = true;
@@ -105,7 +99,7 @@ class SellerController extends Controller
             $medCheck->save();
             return response()->json(["successMsg" => "Medicine id =".$medCheck->id." updated successfully"]);
         }
-        $med = new Medicine_storage();
+        $med = new Medicine();
         $med->name = $req->name;
         $med->type = $req->medicineType;
         $med->weight = $req->weight;
@@ -117,7 +111,7 @@ class SellerController extends Controller
     }
 
     public function medicineList(){
-        $list = Medicine_storage::where('price_per_piece', '<>', null)->where('permission', 1)->orderByRaw("concat(name, type, weight)")->get();
+        $list = Medicine::where('price_per_piece', '<>', null)->where('permission', 1)->orderByRaw("concat(name, type, weight)")->get();
         return response()->json($list);
     }
 
@@ -220,14 +214,12 @@ class SellerController extends Controller
     }
 
     public function assignDelivaryman(Request $req){
-        $req->validate(
-            [
-                'delivary_username'=>'required',
-            ],
-            [
-                'delivary_username.exists'=>'This delivary man does not exists',
-            ]
-        );
+        $validator = Validator::make($req->all(), [
+            'delivary_username'=>'required',
+        ]);
+        if ($validator->fails())
+            return response()->json($validator->errors());
+        
         $exists = Delivary_man_info::where('username', $req->delivary_username)->first();
         if (!$exists)
             return response()->json(["errorMsg" => 'This delivaryman does not exists.']);

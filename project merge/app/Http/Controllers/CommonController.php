@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Validator;
 use App\Models\User_type;
 use App\Models\All_user;
 use App\Models\Login_history;
@@ -45,7 +46,7 @@ class CommonController extends Controller
             $token->token = $auth_token;
             $token->created_at = date('Y-m-d H:i:s');
             $token->save();
-            return response()->json(["successMsg" => "Login successful ", "authToken" =>$auth_token, "userType" => $user->user_types->type]);
+            return response()->json(["successMsg" => "Login successful ", "authToken" =>$auth_token, "userType" => $user->user_types->type, "username" => $user->username]);
 
             $dateNow = date('Y-m-d H:i:s');
             $entry = new Login_history();
@@ -96,13 +97,13 @@ class CommonController extends Controller
     }
 
     public function userProfileEditSubmit(Request $req){
-        $req->validate(
-            [
-                'name'=>'required|regex:/^[A-Z a-z.]+$/',
-                'gender'=>'required',
-                'address'=>'required',
-            ]
-        );
+        $validator = Validator::make($req->all(), [
+            'name'=>'required|regex:/^[A-Z a-z.]+$/',
+            'gender'=>'required',
+            'address'=>'required',
+        ]);
+        if ($validator->fails())
+            return response()->json($validator->errors());
         
         $user = All_user::where('username', $req->username)->first();
         $user->name = $req->name;
@@ -134,15 +135,12 @@ class CommonController extends Controller
     }
 
     public function resetPasswordSubmit(Request $req){
-        $req->validate(
-            [
-                'password'=>'required|min:3|max:20',
-                'confirmPassword'=>'required|same:password'
-            ],
-            [
-                'confirmPassword.same'=>'New Password and confirm password must be same'
-            ]
-        );
+        $validator = Validator::make($req->all(), [
+            'password'=>'required|min:3|max:20',
+            'confirmPassword'=>'required|same:password'
+        ]);
+        if ($validator->fails())
+            return response()->json($validator->errors());
 
         $user = All_user::where('verification_code', $req->verification_code)->first();
         if($user){
@@ -160,11 +158,12 @@ class CommonController extends Controller
 
     public function addProfilePictureSubmit(Request $req)
     {
-        $req->validate(
-            [
+        $validator = Validator::make($req->all(), [
             'profile_pic' => 'mimes:jpg,bmp,png,jpeg',
-            ]
-        );
+        ]);
+        if ($validator->fails())
+            return response()->json($validator->errors());
+        
         $user = All_user::where('username', $req->username)->first();
         if($user){
             $imageName = $user->username.time().'.'.$req->file('profile_pic')->getClientOriginalExtension();
@@ -195,11 +194,12 @@ class CommonController extends Controller
     }
 
     public function chatSubmit(Request $req){
-        $req->validate(
-            [
+        $validator = Validator::make($req->all(), [
             'chatMsg' => 'required',
-            ]
-        );
+        ]);
+        if ($validator->fails())
+            return response()->json($validator->errors());
+        
         $chat = new Chat();
         $chat->sender = $req->username;
         $chat->receiver = $req->receiverUsername;

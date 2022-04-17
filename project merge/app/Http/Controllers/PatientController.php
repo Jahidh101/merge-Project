@@ -3,10 +3,11 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Validator;
 use App\Models\All_user;
 use App\Models\Chat;
 use App\Models\Cart;
-use App\Models\Medicine_storage;
+use App\Models\Medicine;
 use App\Models\Order_list;
 
 
@@ -49,7 +50,7 @@ class PatientController extends Controller
     public function medicineAddToCart(Request $req){
         if($req->quantity != 0){
             $checkCart = Cart::where('username', $req->username)->where('medicines_id', $req->id)->where('ordered', 0)->first();
-            $medicine = Medicine_storage::where('id', $req->id)->first();
+            $medicine = Medicine::where('id', $req->id)->first();
             if($checkCart){
                 $checkCart->exists = true;
                 $checkCart->quantity = $checkCart->quantity + $req->quantity;
@@ -89,7 +90,7 @@ class PatientController extends Controller
         $delivaryCost = 15;
         if(count($carts) != 0){
             foreach($carts as $cart){
-                $medicine = Medicine_storage::where('id', $cart->medicines->id)->first();
+                $medicine = Medicine::where('id', $cart->medicines->id)->first();
                 if($medicine->quantity < $cart->quantity)
                     return response()->json(["errorMsg" => 'Medicine id ='.$medicine->id.' is out of stock.']);
                 $totalPrice = $totalPrice + $cart->price;
@@ -114,8 +115,8 @@ class PatientController extends Controller
         $newList = Order_list::where('username', $req->username)->get();
         $patient = All_user::where('username', $req->username)->first();
         $data =array();
-        //return response()->json($newList);   
         foreach($newList as $new){
+            //return $new->carts;
             $medicines =array();
             foreach($new->carts as $ca){
                 $medicine = [
@@ -128,7 +129,7 @@ class PatientController extends Controller
                 ];
                 $medicines[] = $medicine;
             }
-            return response()->json($medicines);
+            //return $carts;
             
             $da = [
                 'order_id' => $new->order_id,

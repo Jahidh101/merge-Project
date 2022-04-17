@@ -3,10 +3,11 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Validator;
 use App\Models\User_type;
 use App\Models\All_user;
 use App\Models\Login_history;
-use App\Models\Medicine_storage;
+use App\Models\Medicine;
 use App\Models\Medicine_type;
 use App\Models\Delivary_man_info;
 
@@ -14,14 +15,12 @@ class AdminController extends Controller
 {
 
     public function addUserTypeSubmit(Request $req){
-        $req->validate(
-            [
-                'userType'=>'required|regex:/^[a-z]+$/',
-            ],
-            [
-                'userType.regex'=>'Usertype can only contain lower case alphabets ',
-            ]
-        );
+        $validator = Validator::make($req->all(), [
+            'userType'=>'required|unique:user_types,type|regex:/^[a-z]+$/',
+        ]);
+        if ($validator->fails())
+            return response()->json($validator->errors());
+        
         $type = User_type::where('type', $req->userType)->first();
         if($type)
             return response()->json(["errorMsg" => "userType already exists"]);
@@ -43,14 +42,13 @@ class AdminController extends Controller
     }
 
     public function userTypeEditSubmit(Request $req){
-        $req->validate(
-            [
-                'userType'=>'required|unique:user_types,type|regex:/^[a-z]+$/',
-            ],
-            [
-                'userType.regex'=>'Usertype can only contain lower case alphabets',
-            ]
-        );
+        $validator = Validator::make($req->all(), [
+            'userType'=>'required|unique:user_types,type|regex:/^[a-z]+$/',
+            'id' => 'required'
+        ]);
+        if ($validator->fails())
+            return response()->json($validator->errors());
+        
         $uTypes = new User_type();
         $uTypes->exists = true;
         $uTypes->id = $req->id;
@@ -92,33 +90,29 @@ class AdminController extends Controller
     }
 
     public function newMedicineList(){
-        $list = Medicine_storage::where('price_per_piece', null)->get();
+        $list = Medicine::where('price_per_piece', null)->get();
         return view('Users.Admin.newMedicineList')->with('list', $list);
     }
 
     public function medicineEdit(Request $req){
         $types = Medicine_type::all();
-        $medicine = Medicine_storage::where('id', $req->id)->first();
+        $medicine = Medicine::where('id', $req->id)->first();
         return view('Users.Admin.MedicineEdit')->with('medicine', $medicine)->with('types', $types);
     }
 
     public function medicineEditSubmit(Request $req){
-        $req->validate(
-            [
-                'name'=>'required|regex:/^[A-Za-z]+$/',
-                'medicineType'=>'required',
-                'weight'=>'required|regex:/^[a-z0-9 ]+$/',
-                'quantity'=>'required|regex:/^[0-9]+$/',
-            ],
-            [
-                'name.regex'=>'Type can only contain lower case alphabets. ',
-                'quantity.regex'=>'Quantity can only contain numbers.',
-            ]
-        );
+        $validator = Validator::make($req->all(), [
+            'name'=>'required|regex:/^[A-Za-z]+$/',
+            'medicineType'=>'required',
+            'weight'=>'required|regex:/^[a-z0-9 ]+$/',
+            'quantity'=>'required|regex:/^[0-9]+$/',
+        ]);
+        if ($validator->fails())
+            return response()->json($validator->errors());
 
-        $medCheck = Medicine_storage::where('id', $req->id)->first();
+        $medCheck = Medicine::where('id', $req->id)->first();
         $prevName = $medCheck->name;
-        $medNameCheck = Medicine_storage::where('name', $req->name)->where('type', $req->medicineType)->where('weight', $req->weight)->where('id','<>', $req->id)->first();
+        $medNameCheck = Medicine::where('name', $req->name)->where('type', $req->medicineType)->where('weight', $req->weight)->where('id','<>', $req->id)->first();
         if($req->submitbutton == 'Update'){
             if($medCheck && !$medNameCheck){
                 $medCheck->exists = true;
@@ -136,7 +130,7 @@ class AdminController extends Controller
                 $medNameCheck->exists = true;
                 $medNameCheck->quantity = $medNameCheck->quantity + $req->quantity;
                 $medNameCheck->save();
-                $medCheck = Medicine_storage::where('id', $req->id)->delete();
+                $medCheck = Medicine::where('id', $req->id)->delete();
                 return response()->json(["successMsg" => "Medicine " .$prevName. " has been deleted and it has been added to medicine " .$medNameCheck->name]);
             }
             return response()->json(["errorMsg" => "This type of Medicine " .$req->name. " does not exists to overwrite"]);
@@ -145,21 +139,18 @@ class AdminController extends Controller
     }
 
     public function medicinePriceSet(Request $req){
-        $medicine = Medicine_storage::where('id', $req->id)->first();
+        $medicine = Medicine::where('id', $req->id)->first();
         return view('Users.Admin.medicinePriceSet')->with('medicine', $medicine);
     }
 
     public function medicinePriceSetSubmit(Request $req){
-        $req->validate(
-            [
-                'pricePerPiece'=>'required|regex:/^[0-9.]+$/',
-            ],
-            [
-                'pricePerPiece.regex'=>'price Per Piece can only contain numbers.',
-            ]
-        );
+        $validator = Validator::make($req->all(), [
+            'pricePerPiece'=>'required|regex:/^[0-9.]+$/',
+        ]);
+        if ($validator->fails())
+            return response()->json($validator->errors());
 
-        $medCheck = Medicine_storage::where('id', $req->id)->first();
+        $medCheck = Medicine::where('id', $req->id)->first();
         $oldPrice = $medCheck->price_per_piece;
         if($medCheck){
             $medCheck->exists = true;
@@ -174,12 +165,12 @@ class AdminController extends Controller
     }
 
     public function medicineBlockedList(){
-        $list = Medicine_storage::where('permission', 0)->orderByRaw("concat(name, type, weight)")->get();
+        $list = Medicine::where('permission', 0)->orderByRaw("concat(name, type, weight)")->get();
         return response()->json($list);
     }
 
     public function medicineBlock(Request $req){
-        $medCheck = Medicine_storage::where('id', $req->id)->first();
+        $medCheck = Medicine::where('id', $req->id)->first();
         if($medCheck){
             $medCheck->exists = true;
             $medCheck->permission = 0;
@@ -191,7 +182,7 @@ class AdminController extends Controller
     }
 
     public function medicineUnblock(Request $req){
-        $medCheck = Medicine_storage::where('id', $req->id)->first();
+        $medCheck = Medicine::where('id', $req->id)->first();
         if($medCheck){
             $medCheck->exists = true;
             $medCheck->permission = 1;
@@ -207,14 +198,12 @@ class AdminController extends Controller
     }
 
     public function addDelivarymanSubmit(Request $req){
-        $req->validate(
-            [
-                'username'=>'required',
-            ],
-            [
-                
-            ]
-        );
+        $validator = Validator::make($req->all(), [
+            'username'=>'required',
+        ]);
+        if ($validator->fails())
+            return response()->json($validator->errors());
+        
         $existingUser = Delivary_man_info::where('username', $req->username)->first();
         if($existingUser)
             return response()->json(["errorMsg" => "This username already exists"]);;
@@ -250,8 +239,8 @@ class AdminController extends Controller
     }
 
     public function medicineList(){
-        $newList = Medicine_storage::where('price_per_piece', null)->where('permission', 1)->orderByRaw("concat(name, type, weight)")->get();
-        $oldList = Medicine_storage::where('price_per_piece', '<>', null)->where('permission', 1)->orderByRaw("concat(name, type, weight)")->get();
+        $newList = Medicine::where('price_per_piece', null)->where('permission', 1)->orderByRaw("concat(name, type, weight)")->get();
+        $oldList = Medicine::where('price_per_piece', '<>', null)->where('permission', 1)->orderByRaw("concat(name, type, weight)")->get();
         $list = [
             "newList" => $newList,
             "oldList" => $oldList,
@@ -260,7 +249,7 @@ class AdminController extends Controller
     }
 
     public function medicineGet(Request $req){
-        $medicine = Medicine_storage::where('id', $req->id)->first();
+        $medicine = Medicine::where('id', $req->id)->first();
         return response()->json($medicine);
     }
 
